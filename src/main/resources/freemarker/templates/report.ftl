@@ -84,27 +84,6 @@
     <hr class="pf-c-divider mt-2"/>
 </div>
 
-<!-- Modal -->
-<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Modal title</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                ...
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-link" data-dismiss="modal">Vex</button>
-                <button type="button" class="btn btn-link">SBOMS</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <#--Table-->
 <div class="p-3">
     <table class="table" style="border-collapse:collapse; font-size: smaller;">
@@ -174,7 +153,7 @@
                     <#assign rhRemediationAvail = dependency.isRHRemediationAvail()>
                     <#if rhRemediationAvail>
                         <svg style="width: 10.9793322px; height: 13px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                            <use href="#shield-icon">
+                            <use href="#shield-icon"/>
                         </svg>
                     </#if>
                 </td>
@@ -247,15 +226,15 @@
                                                 </#if>
                                             </td>
                                             <td>
-                                                <#assign recommendation = dependency.getDirectRecommendationName(vulnerability.id())>
+                                                <#assign recommendation = dependency.getDirectRecommendationName(vulnerability.id())!>
                                                 <#if recommendation?has_content>
                                                     <#assign link = dependency.getLink(dependency.dependencyReport.ref().name(), recommendation)>
                                                     <svg style="width: 10.9793322px; height: 13px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                                                        <use href="#shield-icon">
+                                                        <use href="#shield-icon"/>
                                                     </svg>
-                                                    <a href="https://maven.repository.redhat.com/ga/${link}" target="_blank">
+                                                    <button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal" data-vex="https://vex.com" data-sbom="https://sbom.com" data-link="https://maven.repository.redhat.com/ga/${link}" data-rhpkg="${recommendation}">
                                                         ${recommendation}
-                                                    </a>
+                                                    </button>
                                                 <#else>
                                                     <a href="https://snyk.io/vuln/${vulnerability.id()}"
                                                        target="_blank">
@@ -348,27 +327,12 @@
                                                         <#assign recommendation = dependency.getTransRecommendationName(vulnerability.id())!>
                                                         <#if recommendation?has_content>
                                                             <#assign link = dependency.getLink(recommendation.name(), recommendation.version())>
-                                                            <svg width="10.9793322px" height="13px" viewBox="0 0 10.9793322 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                                                                <title>Combined Shape</title>
-                                                                <g id="New-dependencies-view" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                                    <g id="Overview" transform="translate(-1207.172757, -938.000000)" fill="#3E8635">
-                                                                        <g id="Details-of-dependency-com.github" transform="translate(427.000000, 764.000000)">
-                                                                            <g id="Dependency-1" transform="translate(0.000000, 144.000000)">
-                                                                                <g id="Group-9" transform="translate(780.172757, 24.000000)">
-                                                                                    <g id="Group-4" transform="translate(0.000000, 3.200001)">
-                                                                                        <g id="Icons/2.-Size-sm/Actions/check" transform="translate(0.000000, 2.799999)">
-                                                                                            <path d="M10.5565789,0 C10.7906249,0 10.9793322,0.181542969 10.9793322,0.40625 L10.9793322,5.74082031 C10.9793322,9.75 6.24081907,13 5.49579296,13 C4.75076684,13 0,9.75 0,5.73955078 L0,0.40625 C0,0.181542969 0.188707272,0 0.422753304,0 Z M8.54277883,3.11782667 L4.7912961,6.89087353 L3.03981338,5.1293244 C2.883609,4.97220683 2.63032812,4.97220683 2.47412375,5.1293244 L1.90844938,5.69826556 C1.75224501,5.85538312 1.75224501,6.11010449 1.90844938,6.26720671 L4.50845797,8.88215991 C4.66464708,9.03927747 4.9179127,9.03927747 5.07413233,8.88217525 L9.67414282,4.25570898 C9.8303472,4.09859141 9.8303472,3.84387004 9.67414282,3.68676782 L9.10846846,3.11782667 C8.95226408,2.96072444 8.6989832,2.96072444 8.54277883,3.11782667 Z" id="Combined-Shape"></path>
-                                                                                        </g>
-                                                                                    </g>
-                                                                                </g>
-                                                                            </g>
-                                                                        </g>
-                                                                    </g>
-                                                                </g>
+                                                            <svg style="width: 10.9793322px; height: 13px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                                <use href="#shield-icon"/>
                                                             </svg>
-                                                            <a href="https://maven.repository.redhat.com/ga/${link}" target="_blank" style="font-size: 16px">
+                                                            <button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal" data-vex="https://vex.com" data-sbom="https://sbom.com" data-link="https://maven.repository.redhat.com/ga/${link}" data-rhpkg="${recommendation.version()}">
                                                                 ${recommendation.version()}
-                                                            </a>
+                                                            </button>
                                                         <#else>
                                                             <a href="https://snyk.io/vuln/${vulnerability.id()}"
                                                                target="_blank">
@@ -427,27 +391,12 @@
                                                         <#assign recommendation = dependency.getTransRecommendationName(vulnerability.id())!>
                                                         <#if recommendation?has_content>
                                                             <#assign link = dependency.getLink(recommendation.name(), recommendation.version())>
-                                                            <svg width="10.9793322px" height="13px" viewBox="0 0 10.9793322 13" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-                                                                <title>Combined Shape</title>
-                                                                <g id="New-dependencies-view" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
-                                                                    <g id="Overview" transform="translate(-1207.172757, -938.000000)" fill="#3E8635">
-                                                                        <g id="Details-of-dependency-com.github" transform="translate(427.000000, 764.000000)">
-                                                                            <g id="Dependency-1" transform="translate(0.000000, 144.000000)">
-                                                                                <g id="Group-9" transform="translate(780.172757, 24.000000)">
-                                                                                    <g id="Group-4" transform="translate(0.000000, 3.200001)">
-                                                                                        <g id="Icons/2.-Size-sm/Actions/check" transform="translate(0.000000, 2.799999)">
-                                                                                            <path d="M10.5565789,0 C10.7906249,0 10.9793322,0.181542969 10.9793322,0.40625 L10.9793322,5.74082031 C10.9793322,9.75 6.24081907,13 5.49579296,13 C4.75076684,13 0,9.75 0,5.73955078 L0,0.40625 C0,0.181542969 0.188707272,0 0.422753304,0 Z M8.54277883,3.11782667 L4.7912961,6.89087353 L3.03981338,5.1293244 C2.883609,4.97220683 2.63032812,4.97220683 2.47412375,5.1293244 L1.90844938,5.69826556 C1.75224501,5.85538312 1.75224501,6.11010449 1.90844938,6.26720671 L4.50845797,8.88215991 C4.66464708,9.03927747 4.9179127,9.03927747 5.07413233,8.88217525 L9.67414282,4.25570898 C9.8303472,4.09859141 9.8303472,3.84387004 9.67414282,3.68676782 L9.10846846,3.11782667 C8.95226408,2.96072444 8.6989832,2.96072444 8.54277883,3.11782667 Z" id="Combined-Shape"></path>
-                                                                                        </g>
-                                                                                    </g>
-                                                                                </g>
-                                                                            </g>
-                                                                        </g>
-                                                                    </g>
-                                                                </g>
+                                                            <svg style="width: 10.9793322px; height: 13px" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+                                                                <use href="#shield-icon"/>
                                                             </svg>
-                                                            <a href="https://maven.repository.redhat.com/ga/${link}" target="_blank" style="font-size: 16px">
+                                                            <button type="button" class="btn btn-link" data-toggle="modal" data-target="#modal" data-vex="https://vex.com" data-sbom="https://sbom.com" data-link="https://maven.repository.redhat.com/ga/${link}" data-rhpkg="${recommendation.version()}">
                                                                 ${recommendation.version()}
-                                                            </a>
+                                                            </button>
                                                         <#else>
                                                             <a href="https://snyk.io/vuln/${vulnerability.id()}"
                                                                target="_blank">
@@ -472,6 +421,30 @@
     </table>
 </div>
 
+<!-- Modal -->
+<div class="modal fade" id="modal" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalLabel">
+                    <a href="" target="_blank">
+                        Modal title
+                    </a>
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                Which file type below would you like? Or click on the title to go to the Red Hat Maven repository.
+            </div>
+            <div class="modal-footer" style="justify-content: space-around">
+                <span id="vex"><a href="" target="_blank">Vex</a></span>
+                <span id="sbom"> <a href="" target="_blank">SBOMS</a></span>
+            </div>
+        </div>
+    </div>
+</div>
 
 </div>
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
@@ -480,5 +453,19 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-ho+j7jyWK8fNQe+A12Hb8AhRq26LrZ/JpcUGGOn+Y7RsweNrtN/tE3MoK7ZeZDyx"
         crossorigin="anonymous"></script>
+<script>
+    $('#modal').on('show.bs.modal', function (event) {
+        var button = $(event.relatedTarget) // Button that triggered the modal
+        var link = button.data('link')// Extract info from data-* attributes
+        var rhpkg = button.data('rhpkg')
+        var vex = button.data('vex')
+        var sbom = button.data('sbom')
+        var modal = $(this)
+        modal.find('.modal-title a').attr("href", link);
+        modal.find('.modal-title a').text(rhpkg);
+        modal.find('#vex a').attr("href", vex)
+        modal.find('#sbom a').attr("href", sbom)
+    })
+</script>
 </body>
 </html>
