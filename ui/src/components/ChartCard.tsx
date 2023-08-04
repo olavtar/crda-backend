@@ -1,14 +1,13 @@
 import React from 'react';
 import { Bullseye, Card, CardBody, CardHeader, CardTitle, Divider } from '@patternfly/react-core';
 import { ChartDonut, ChartThemeColor } from '@patternfly/react-charts';
-import { useAppContext } from '../App';
+import { Provider } from '@app/api/report';
 
-export const ChartCard: React.FC = () => {
-  const sbom = useAppContext();
+export const ChartCard = ({ provider }: { provider: Provider }) => {
   return (
     <Card isFlat isFullHeight>
       <CardHeader>
-        <CardTitle>{`${sbom.report.summary.vulnerabilities.total} vulnerabilities in ${sbom.report.dependencies.length} dependencies`}</CardTitle>
+        <CardTitle>{`${provider.summary.vulnerabilities.total} vulnerabilities in ${provider.dependencies.length} dependencies`}</CardTitle>
       </CardHeader>
       <Divider />
       <CardBody>
@@ -17,20 +16,20 @@ export const ChartCard: React.FC = () => {
             <ChartDonut
               constrainToVisibleArea
               data={[
-                { x: 'High', y: sbom.report.summary.vulnerabilities.high },
+                { x: 'High', y: provider.summary.vulnerabilities.high },
                 {
                   x: 'Medium',
-                  y: sbom.report.summary.vulnerabilities.medium,
+                  y: provider.summary.vulnerabilities.medium,
                 },
-                { x: 'Low', y: sbom.report.summary.vulnerabilities.low },
+                { x: 'Low', y: provider.summary.vulnerabilities.low },
               ]}
               labels={({ datum }) => `${datum.x}: ${datum.y}%`}
               legendData={[
-                { name: `High: ${sbom.report.summary.vulnerabilities.high}` },
+                { name: `High: ${provider.summary.vulnerabilities.high}` },
                 {
-                  name: `Medium: ${sbom.report.summary.vulnerabilities.medium}`,
+                  name: `Medium: ${provider.summary.vulnerabilities.medium}`,
                 },
-                { name: `Low: ${sbom.report.summary.vulnerabilities.low}` },
+                { name: `Low: ${provider.summary.vulnerabilities.low}` },
               ]}
               legendOrientation="vertical"
               legendPosition="right"
@@ -41,7 +40,7 @@ export const ChartCard: React.FC = () => {
                 top: 20,
               }}
               subTitle="Vulnerabilities"
-              title={`${sbom.report.summary.vulnerabilities.total}`}
+              title={`${provider.summary.vulnerabilities.total}`}
               width={350}
               themeColor={ChartThemeColor.orange}
             />
