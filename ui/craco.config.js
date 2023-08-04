@@ -1,6 +1,6 @@
 module.exports = {
   webpack: {
-    configure: (webpackConfig, { env, paths }) => {
+    configure: (webpackConfig) => {
       webpackConfig.output = {
         ...webpackConfig.output,
         filename: "static/js/[name].js",
@@ -8,17 +8,18 @@ module.exports = {
       webpackConfig.optimization = {
         ...webpackConfig.optimization,
         splitChunks: {
-          chunks: 'all',
+          chunks: "all",
           cacheGroups: {
             vendor: {
               test: /[\\/]node_modules[\\/]/,
-              name: 'vendor'
+              name: "vendor",
             },
           },
         },
       };
 
-      webpackConfig.module.rules[1].oneOf.unshift({
+      // inline all assets into the JS bundle
+      webpackConfig.module.rules[0].oneOf.unshift({
         test: /\.(png|jpg|jpeg|woff|woff2|eot|ttf|svg)$/,
         type: "asset/inline",
       });

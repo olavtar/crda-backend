@@ -49,8 +49,14 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <script>
+        window["sbomb"]=[=body.reportJson];
+    </script>
     <style>
         [#include "generated/vendor.css" parse="false"]
+    </style>
+    <style>
+        [#include "generated/main.css" parse="false"]
     </style>
     <title>Dependency Analysis</title>
 </head>
@@ -78,7 +84,7 @@
         [#include "generated/vendor.js" parse="false"]
     </script>
     <script>
-        [#include "generated/main.js" parse="true"]
+        [#include "generated/main.js" parse="false"]
     </script>
 </body>
 
