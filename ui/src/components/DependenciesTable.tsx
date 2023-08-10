@@ -119,11 +119,11 @@ export const DependenciesTable = () => {
               </ToolbarItem>
             </ToolbarContent>
           </Toolbar>
-          <Table isExpandable>
+          <Table isExpandable variant='compact'>
             <Thead>
               <Tr>
                 <Th></Th>
-                <Th
+                <Th width={25}
                   sort={{
                     columnIndex: 1,
                     sortBy: { ...currentSortBy },
@@ -134,9 +134,9 @@ export const DependenciesTable = () => {
                 </Th>
                 <Th>Direct</Th>
                 <Th>Transitive</Th>
-                <Th>Highest CVSS</Th>
-                <Th>Highest Severity</Th>
-                <Th>Red Hat remediation available</Th>
+                <Th width={20}>Highest CVSS</Th>
+                <Th width={25}>Highest Severity</Th>
+                <Th width={15}>Red Hat remediation available</Th>
               </Tr>
             </Thead>
             <ConditionalTableBody isNoData={filteredItems.length === 0} numRenderedColumns={8}>

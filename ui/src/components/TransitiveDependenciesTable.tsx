@@ -30,13 +30,13 @@ export const TransitiveDependenciesTable: React.FC<TransitiveDependenciesTablePr
         <Caption>Transitive dependencies with vulnerabilities</Caption>
         <Thead>
           <Tr>
-            <Th>Dependency</Th>
+            <Th width={20}>Dependency</Th>
             <Th>Severity</Th>
             <Th>Exploit Maturity</Th>
-            <Th>Description</Th>
-            <Th width={10}>CVSS</Th>
-            <Th>CVE</Th>
-            <Th>Remediation</Th>
+            <Th width={20}>Description</Th>
+            <Th width={15}>CVSS</Th>
+            <Th width={10}>CVE</Th>
+            <Th width={20}>Remediation</Th>
           </Tr>
         </Thead>
         <ConditionalTableBody isNoData={transitiveDependencies.length === 0} numRenderedColumns={7}>
@@ -63,9 +63,7 @@ export const TransitiveDependenciesTable: React.FC<TransitiveDependenciesTablePr
                     <Td>{vuln.cvss.exploitCodeMaturity || 'No known exploit'}</Td>
                     <Td>{vuln.title}</Td>
                     <Td>
-                      {item.highestVulnerability && (
-                        <VulnerabilityScore vunerability={item.highestVulnerability} />
-                      )}
+                      <VulnerabilityScore vunerability={vuln} />
                     </Td>
                     <Td>{vuln.cves}</Td>
                     <Td>
