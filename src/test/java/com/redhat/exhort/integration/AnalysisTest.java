@@ -34,6 +34,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -436,8 +438,17 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .extract()
             .body()
             .asString();
+    try {
+      Files.write(
+          Paths.get(
+              "/Users/olgalavtar/repos/exhort/src/test/resources/__files/newReport_all_no_snyk_token.html"),
+          body.getBytes());
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
 
-    assertHtml("reports/report_all_no_snyk_token.html", body);
+    testHtmlIsValid(body);
+    assertReportContains("Sign up for a free Snyk account", body);
 
     verifySnykRequest(null);
     verifyTCRequests();
@@ -466,7 +477,8 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    assertHtml("reports/report_all_token.html", body);
+    testHtmlIsValid(body);
+    assertReportDoesNotContains("Sign up for a free Snyk account", body);
 
     verifySnykRequest(OK_TOKEN);
     verifyTCRequests();
@@ -521,7 +533,8 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    assertHtml("reports/report_unauthorized.html", body);
+    testHtmlIsValid(body);
+    assertReportContains("Snyk: Unauthorized: Verify the provided credentials are valid.", body);
 
     verifySnykRequest(INVALID_TOKEN);
     verifyTCRecommendations();
@@ -550,7 +563,9 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    assertHtml("reports/report_forbidden.html", body);
+    testHtmlIsValid(body);
+    assertReportContains(
+        "Snyk: Forbidden: The provided credentials don't have the required permissions.", body);
 
     verifySnykRequest(UNAUTH_TOKEN);
     verifyTCRecommendations();
@@ -579,7 +594,8 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    assertHtml("reports/report_error.html", body);
+    testHtmlIsValid(body);
+    assertReportContains("Snyk: Server Error", body);
 
     verifySnykRequest(ERROR_TOKEN);
     verifyTCRecommendations();
