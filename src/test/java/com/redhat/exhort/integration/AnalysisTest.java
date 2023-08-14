@@ -441,7 +441,7 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    testReportIsValidHtml(body);
+    testHtmlIsValid(body);
     assertReportContains("Sign up for a free Snyk account", body);
 
     verifySnykRequest(null);
@@ -471,7 +471,7 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    testReportIsValidHtml(body);
+    testHtmlIsValid(body);
     assertReportDoesNotContains("Sign up for a free Snyk account", body);
 
     verifySnykRequest(OK_TOKEN);
@@ -527,7 +527,7 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    testReportIsValidHtml(body);
+    testHtmlIsValid(body);
     assertReportContains("Snyk: Unauthorized: Verify the provided credentials are valid.", body);
 
     verifySnykRequest(INVALID_TOKEN);
@@ -557,7 +557,7 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    testReportIsValidHtml(body);
+    testHtmlIsValid(body);
     assertReportContains(
         "Snyk: Forbidden: The provided credentials don't have the required permissions.", body);
 
@@ -588,7 +588,7 @@ public class AnalysisTest extends AbstractAnalysisTest {
             .body()
             .asString();
 
-    testReportIsValidHtml(body);
+    testHtmlIsValid(body);
     assertReportContains("Snyk: Server Error", body);
 
     verifySnykRequest(ERROR_TOKEN);
