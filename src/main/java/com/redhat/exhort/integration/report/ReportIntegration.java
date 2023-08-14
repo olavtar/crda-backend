@@ -65,7 +65,7 @@ public class ReportIntegration extends EndpointRouteBuilder {
             .setProperty(Constants.REPORT_PROPERTY, body())
             .setBody(method(reportTemplate, "setVariables"))
             // TODO: Change to reportV2.ftl to use the patternfly-react enabled report
-            .to(freemarker("report.ftl"));
+            .to(freemarker("reportV2.ftl"));
 
         from(direct("multipartReport"))
             .routeId("multipartReport")

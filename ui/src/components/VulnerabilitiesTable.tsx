@@ -58,13 +58,13 @@ export const VulnerabilitiesTable: React.FC<VulnerabilitiesTableProps> = ({
                   </Td>
                   <Td>{vuln.cves}</Td>
                   <Td>
-                    {mavenPackagesRemediation && mavenPackagesRemediation.length > 0 ? (
-                      mavenPackagesRemediation.map((e, index) => (
-                        <RemediationLink key={index} cves={vuln.cves || []} packageName={e} />
-                      ))
-                    ) : (
+                    {/*{mavenPackagesRemediation && mavenPackagesRemediation.length > 0 ? (*/}
+                    {/*  mavenPackagesRemediation.map((e, index) => (*/}
+                    {/*    <RemediationLink key={index} cves={vuln.cves || []} packageName={e} />*/}
+                    {/*  ))*/}
+                    {/*) : (*/}
                       <VulnerabilityLink providerName={providerName} vunerability={vuln} />
-                    )}
+                    {/*)}*/}
                   </Td>
                 </Tr>
               </Tbody>

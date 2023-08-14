@@ -143,7 +143,7 @@ export const DependenciesTable = () => {
                 <Th>Transitive</Th>
                 <Th width={20}>Highest CVSS</Th>
                 <Th width={25}>Highest Severity</Th>
-                <Th width={15}>Red Hat remediation available</Th>
+                {/*<Th width={15}>Red Hat remediation available</Th>*/}
               </Tr>
             </Thead>
             <ConditionalTableBody
@@ -194,9 +194,9 @@ export const DependenciesTable = () => {
                           />
                         )}
                       </Td>
-                      <Td>
-                        <RemediationsCount dependency={item} />
-                      </Td>
+                      {/*<Td>*/}
+                      {/*  <RemediationsCount dependency={item} />*/}
+                      {/*</Td>*/}
                     </Tr>
                     {isRowExpanded(item) ? (
                       <Tr isExpanded>
