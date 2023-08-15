@@ -6,11 +6,15 @@ export const withoutTokenReport: Report = {
   issueVisibilityHelper: { providerData: ['snyk'] },
   vexPath: 'https://tc-storage-mvp.s3.amazonaws.com/vexes/',
   report: {
-    snyk: {
-      status: { ok: true, name: 'snyk', code: 200, message: 'OK' },
       summary: {
         dependencies: { scanned: 2, transitive: 7 },
         vulnerabilities: { direct: 0, total: 4, critical: 0, high: 1, medium: 3, low: 0 },
+        providerStatuses:[{
+          ok: true,
+          provider: 'snyk',
+          status: 200,
+          message:'OK'
+        }]
       },
       dependencies: [
         {
@@ -23,6 +27,7 @@ export const withoutTokenReport: Report = {
                 {
                   id: 'SNYK-JAVA-COMFASTERXMLJACKSONCORE-2421244',
                   title: 'Denial of Service (DoS)',
+                  source: 'snyk',
                   cvss: {
                     attackVector: 'Network',
                     attackComplexity: 'Low',
@@ -46,6 +51,7 @@ export const withoutTokenReport: Report = {
                   id: 'SNYK-PRIVATE-VULNERABILITY',
                   title:
                     'Sign up for a free Snyk account to learn aboutn the vulnerabilities found',
+                  source: 'snyk',
                   cvss: null,
                   cvssScore: 5.9,
                   severity: 'MEDIUM',
@@ -55,6 +61,7 @@ export const withoutTokenReport: Report = {
                 {
                   id: 'SNYK-JAVA-COMFASTERXMLJACKSONCORE-3038426',
                   title: 'Denial of Service (DoS)',
+                  source: 'snyk',
                   cvss: {
                     attackVector: 'Network',
                     attackComplexity: 'High',
@@ -86,6 +93,7 @@ export const withoutTokenReport: Report = {
               highestVulnerability: {
                 id: 'SNYK-JAVA-COMFASTERXMLJACKSONCORE-2421244',
                 title: 'Denial of Service (DoS)',
+                source: 'snyk',
                 cvss: {
                   attackVector: 'Network',
                   attackComplexity: 'Low',
@@ -112,6 +120,7 @@ export const withoutTokenReport: Report = {
           highestVulnerability: {
             id: 'SNYK-JAVA-COMFASTERXMLJACKSONCORE-2421244',
             title: 'Denial of Service (DoS)',
+            source: 'snyk',
             cvss: {
               attackVector: 'Network',
               attackComplexity: 'Low',
@@ -142,6 +151,7 @@ export const withoutTokenReport: Report = {
                 {
                   id: 'SNYK-JAVA-ORGPOSTGRESQL-3146847',
                   title: 'Information Exposure',
+                  source: 'snyk',
                   cvss: {
                     attackVector: 'Local',
                     attackComplexity: 'High',
@@ -166,6 +176,7 @@ export const withoutTokenReport: Report = {
               highestVulnerability: {
                 id: 'SNYK-JAVA-ORGPOSTGRESQL-3146847',
                 title: 'Information Exposure',
+                source: 'snyk',
                 cvss: {
                   attackVector: 'Local',
                   attackComplexity: 'High',
@@ -192,6 +203,7 @@ export const withoutTokenReport: Report = {
           highestVulnerability: {
             id: 'SNYK-JAVA-ORGPOSTGRESQL-3146847',
             title: 'Information Exposure',
+            source: 'snyk',
             cvss: {
               attackVector: 'Local',
               attackComplexity: 'High',
@@ -214,7 +226,6 @@ export const withoutTokenReport: Report = {
         },
       ],
     },
-  },
   ossIndexIssueLinkFormatter: { issuePathRegex: 'http://ossindex.sonatype.org/vulnerability/%s' },
   snykIssueLinkFormatter: {
     issuePathRegex:

@@ -44,7 +44,7 @@ export const DependenciesTable = () => {
   const appContext = useAppContext();
 
   const providerName = 'snyk';
-  const synkReport = appContext.report[providerName];
+  const synkReport = appContext.report;
   const tableData = synkReport.dependencies;
 
   // Filters
@@ -142,8 +142,7 @@ export const DependenciesTable = () => {
                 <Th>Direct</Th>
                 <Th>Transitive</Th>
                 <Th width={20}>Highest CVSS</Th>
-                <Th width={25}>Highest Severity</Th>
-                {/*<Th width={15}>Red Hat remediation available</Th>*/}
+                <Th width={30}>Highest Severity</Th>
               </Tr>
             </Thead>
             <ConditionalTableBody
@@ -194,9 +193,6 @@ export const DependenciesTable = () => {
                           />
                         )}
                       </Td>
-                      {/*<Td>*/}
-                      {/*  <RemediationsCount dependency={item} />*/}
-                      {/*</Td>*/}
                     </Tr>
                     {isRowExpanded(item) ? (
                       <Tr isExpanded>

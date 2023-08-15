@@ -15,16 +15,21 @@ import {
   TextContent,
 } from '@patternfly/react-core';
 import ShieldAltIcon from '@patternfly/react-icons/dist/esm/icons/shield-alt-icon';
+import ExclamationTriangleIcon from '@patternfly/react-icons/dist/esm/icons/exclamation-triangle-icon';
 import { useAppContext } from '../App';
 
 export const SummaryCard = () => {
   const appContext = useAppContext();
-  const synkReport = appContext.report['snyk'];
+  const synkReport = appContext.report;
 
   return (
     <Card isFlat isFullHeight>
       <CardHeader>
-        <CardTitle>Security Issues</CardTitle>
+        <CardTitle>
+          <Icon isInline status="info">
+            <ExclamationTriangleIcon style={{fill: "#f0ab00"}}/>
+          </Icon>{' '}Security Issues
+        </CardTitle>
       </CardHeader>
       <Divider />
       <CardBody>

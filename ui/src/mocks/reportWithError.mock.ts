@@ -6,8 +6,6 @@ export const errorReport: Report = {
   issueVisibilityHelper: { providerData: null },
   vexPath: 'https://tc-storage-mvp.s3.amazonaws.com/vexes/',
   report: {
-    snyk: {
-      status: { ok: false, name: 'snyk', code: 500, message: 'Server Error' },
       summary: {
         dependencies: { scanned: null, transitive: null },
         vulnerabilities: {
@@ -18,10 +16,16 @@ export const errorReport: Report = {
           medium: null,
           low: null,
         },
+        providerStatuses:[{
+          ok: false,
+          provider: 'snyk',
+          status: 500,
+          message:'Server Error'
+
+        }]
       },
       dependencies: [],
     },
-  },
   ossIndexIssueLinkFormatter: { issuePathRegex: 'http://ossindex.sonatype.org/vulnerability/%s' },
   snykIssueLinkFormatter: {
     issuePathRegex:
