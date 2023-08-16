@@ -126,10 +126,10 @@ public abstract class AbstractAnalysisTest {
   }
 
   protected void testHtmlIsValid(String html) {
-    try (WebClient webClient = new WebClient(BrowserVersion.CHROME)) {
-      // TODO enable Javascript once we know how to avoid exceptions while loading html
-      webClient.getOptions().setJavaScriptEnabled(false);
+    try (WebClient webClient = new WebClient(BrowserVersion.BEST_SUPPORTED)) {
       HtmlPage page = webClient.loadHtmlCodeIntoCurrentWindow(html);
+      webClient.waitForBackgroundJavaScript(50000);
+
       assertTrue(page.isHtmlPage(), "The string is valid HTML.");
       assertEquals("Dependency Analysis", page.getTitleText());
     } catch (Exception e) {
