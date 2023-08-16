@@ -19,8 +19,8 @@ export const forbiddenReport: Report = {
         providerStatuses:[{
           ok: false,
           provider: 'snyk',
-          status: 500,
-          message:'Server Error'
+          status: 403,
+          message:'Forbidden: The provided credentials don\'t have the required permissions.'
         }]
       },
       dependencies: [],

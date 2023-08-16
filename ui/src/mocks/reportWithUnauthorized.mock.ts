@@ -17,10 +17,10 @@ export const unauthorizedReport: Report = {
           low: null,
         },
         providerStatuses:[{
-          ok: true,
+          ok: false,
           provider: 'snyk',
-          status: 200,
-          message:'OK'
+          status: 401,
+          message:'Unauthorized: Verify the provided credentials are valid.'
         }]
       },
       dependencies: [],
