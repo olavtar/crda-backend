@@ -61,6 +61,7 @@ public class ReportIntegration extends EndpointRouteBuilder {
         from(direct("htmlReport"))
             .routeId("htmlReport")
             .setHeader(Exchange.CONTENT_TYPE, constant(MediaType.TEXT_HTML))
+            .bean(ReportTransformer.class, "transform")
             .setProperty(Constants.REPORT_PROPERTY, body())
             .setBody(method(reportTemplate, "setVariables"))
             // TODO: Change to reportV2.ftl to use the patternfly-react enabled report
