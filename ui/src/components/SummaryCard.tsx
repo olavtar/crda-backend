@@ -54,7 +54,6 @@ export const SummaryCard = ({report}: { report: Report }) => {
             <DescriptionList isAutoFit style={{paddingTop: "10px"}}>
               {
                 getSources(report).map((source, index) => {
-                  if (Object.keys(source.report).length > 0) {
                     return (
                       <DescriptionListGroup key={index}
                                             style={{display: "flex", flexDirection: "column", alignItems: "center"}}>
@@ -69,8 +68,7 @@ export const SummaryCard = ({report}: { report: Report }) => {
                       </DescriptionListGroup>
                     )
                   }
-                  return <p/>
-                })
+                )
               }
             </DescriptionList>
           </CardBody>

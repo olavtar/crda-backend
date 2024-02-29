@@ -32,15 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.redhat.exhort.api.PackageRef;
-import com.redhat.exhort.api.v4.DependencyReport;
-import com.redhat.exhort.api.v4.Issue;
-import com.redhat.exhort.api.v4.ProviderReport;
-import com.redhat.exhort.api.v4.ProviderStatus;
-import com.redhat.exhort.api.v4.Remediation;
-import com.redhat.exhort.api.v4.RemediationTrustedContent;
-import com.redhat.exhort.api.v4.Source;
-import com.redhat.exhort.api.v4.SourceSummary;
-import com.redhat.exhort.api.v4.TransitiveDependencyReport;
+import com.redhat.exhort.api.v4.*;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.model.CvssScoreComparable.DependencyScoreComparator;
 import com.redhat.exhort.model.CvssScoreComparable.TransitiveScoreComparator;
@@ -78,18 +70,17 @@ public abstract class ProviderResponseHandler {
       return newExchange;
     }
     if (oldExchange.status() != null && !Boolean.TRUE.equals(oldExchange.status().getOk())) {
-      if (oldExchange.unscanned() == null) {
-        if (newExchange.unscanned() != null) {
+      if (newExchange.unscanned() != null) {
+        if (oldExchange.unscanned() == null) {
           return new ProviderResponse(
               oldExchange.issues(), oldExchange.status(), newExchange.unscanned());
+        } else {
+          oldExchange.unscanned().addAll(newExchange.unscanned());
         }
-      }
-      if (newExchange.unscanned() != null) {
-        oldExchange.unscanned().addAll(newExchange.unscanned());
       }
       return oldExchange;
     }
-    var exchange = new ProviderResponse(new HashMap<>(), oldExchange.status(), new HashSet<>());
+    var exchange = new ProviderResponse(new HashMap<>(), oldExchange.status(), new ArrayList<>());
     if (oldExchange.unscanned() != null) {
       exchange.unscanned().addAll(oldExchange.unscanned());
     }
@@ -223,7 +214,7 @@ public abstract class ProviderResponseHandler {
   }
 
   public ProviderResponse unscannedResponse(
-      @ExchangeProperty(Constants.UNSCANNED_REFS_PROPERTY) Set<PackageRef> unscanned) {
+      @ExchangeProperty(Constants.UNSCANNED_REFS_PROPERTY) List<UnscannedDependency> unscanned) {
     return new ProviderResponse(Collections.emptyMap(), null, unscanned);
   }
 
@@ -266,7 +257,9 @@ public abstract class ProviderResponseHandler {
       return new ProviderReport().status(response.status()).sources(Collections.emptyMap());
     }
     var sourcesIssues = splitIssuesBySource(response.issues());
-    if (sourcesIssues.isEmpty() && !tcResponse.recommendations().isEmpty()) {
+    if (sourcesIssues.isEmpty()
+        && (!tcResponse.recommendations().isEmpty()
+            || (response.unscanned() != null && !response.unscanned().isEmpty()))) {
       sourcesIssues.put(getProviderName(), Collections.emptyMap());
     }
     Map<String, Source> reports = new HashMap<>();
@@ -277,27 +270,11 @@ public abstract class ProviderResponseHandler {
                 reports.put(
                     k,
                     buildReportForSource(
-                        sourcesIssues.get(k), tree, privateProviders, tcResponse)));
-    if (response.unscanned() != null && !response.unscanned().isEmpty()) {
-      List<DependencyReport> unscannedList =
-          response.unscanned().stream()
-              .map(packageRef -> new DependencyReport().ref(packageRef).scanned(false))
-              .toList();
-      reports
-          .values()
-          .forEach(
-              source -> {
-                if (source.getDependencies() == null) {
-                  source.setDependencies(new ArrayList<>());
-                }
-                source.getDependencies().addAll(unscannedList);
-
-                if (source.getSummary() == null) {
-                  source.setSummary(new SourceSummary());
-                }
-                source.getSummary().setUnscanned(unscannedList.size());
-              });
-    }
+                        sourcesIssues.get(k),
+                        tree,
+                        privateProviders,
+                        tcResponse,
+                        response.unscanned())));
     return new ProviderReport().status(defaultOkStatus(getProviderName())).sources(reports);
   }
 
@@ -305,7 +282,8 @@ public abstract class ProviderResponseHandler {
       Map<String, List<Issue>> issuesData,
       DependencyTree tree,
       String privateProviders,
-      TrustedContentResponse tcResponse) {
+      TrustedContentResponse tcResponse,
+      List<UnscannedDependency> unscanned) {
     List<DependencyReport> sourceReport = new ArrayList<>();
     tree.dependencies().entrySet().stream()
         .forEach(
@@ -357,8 +335,8 @@ public abstract class ProviderResponseHandler {
             });
 
     sourceReport.sort(Collections.reverseOrder(new DependencyScoreComparator()));
-    var summary = buildSummary(issuesData, tree, sourceReport);
-    return new Source().summary(summary).dependencies(sourceReport);
+    var summary = buildSummary(issuesData, tree, sourceReport, unscanned);
+    return new Source().summary(summary).dependencies(sourceReport).unscanned(unscanned);
   }
 
   private List<Issue> getIssues(
@@ -425,7 +403,8 @@ public abstract class ProviderResponseHandler {
   private SourceSummary buildSummary(
       Map<String, List<Issue>> issuesData,
       DependencyTree tree,
-      List<DependencyReport> sourceReport) {
+      List<DependencyReport> sourceReport,
+      List<UnscannedDependency> unscanned) {
     var counter = new VulnerabilityCounter();
     var directRefs =
         tree.dependencies().keySet().stream().map(PackageRef::ref).collect(Collectors.toSet());
@@ -435,6 +414,7 @@ public abstract class ProviderResponseHandler {
     Long recommendationsCount =
         sourceReport.stream().filter(s -> s.getRecommendation() != null).count();
     counter.recommendations.set(recommendationsCount.intValue());
+    counter.unscanned.set(Optional.ofNullable(unscanned).map(List::size).orElse(0));
     return counter.getSummary();
   }
 
@@ -485,10 +465,12 @@ public abstract class ProviderResponseHandler {
       AtomicInteger direct,
       AtomicInteger dependencies,
       AtomicInteger remediations,
-      AtomicInteger recommendations) {
+      AtomicInteger recommendations,
+      AtomicInteger unscanned) {
 
     VulnerabilityCounter() {
       this(
+          new AtomicInteger(),
           new AtomicInteger(),
           new AtomicInteger(),
           new AtomicInteger(),
@@ -512,7 +494,8 @@ public abstract class ProviderResponseHandler {
           .dependencies(dependencies.get())
           .remediations(remediations.get())
           // Will be calculated later when TC recommendations will be added.
-          .recommendations(recommendations.get());
+          .recommendations(recommendations.get())
+          .unscanned(unscanned.get());
     }
   }
 }

@@ -18,6 +18,8 @@
 
 package com.redhat.exhort.integration.providers.snyk;
 
+import static com.redhat.exhort.integration.Constants.UNSCANNED_REASON_UNSUPPORTED_PACKAGE_TYPE;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.camel.Body;
 import org.apache.camel.Exchange;
@@ -38,6 +41,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.redhat.exhort.api.PackageRef;
+import com.redhat.exhort.api.v4.UnscannedDependency;
 import com.redhat.exhort.config.ObjectMapperProducer;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.model.DependencyTree;
@@ -103,7 +107,15 @@ public class SnykRequestBuilder {
         types.stream().filter(Predicate.not(SUPPORTED_PURL_TYPES::contains)).toList();
     if (!invalidTypes.isEmpty()) {
       LOGGER.debug("Unsupported package url types received: {}", invalidTypes);
-      exchange.setProperty(Constants.UNSCANNED_REFS_PROPERTY, tree);
+      exchange.setProperty(
+          Constants.UNSCANNED_REFS_PROPERTY,
+          tree.stream()
+              .map(
+                  ref ->
+                      new UnscannedDependency()
+                          .ref(ref)
+                          .reason(UNSCANNED_REASON_UNSUPPORTED_PACKAGE_TYPE))
+              .toList());
     }
   }
 
@@ -124,12 +136,13 @@ public class SnykRequestBuilder {
   }
 
   private JsonNode addPackages(ObjectNode depGraph, Set<PackageRef> refs, PackageRef root) {
-    ;
     var rootNode = createNode(root, refs);
     var nodes = mapper.createArrayNode().add(rootNode);
     var pkgs = mapper.createArrayNode().add(createPkg(root));
 
     refs.stream()
+        .collect(Collectors.toMap(k -> getId(k), v -> v, (a, b) -> a))
+        .values()
         .forEach(
             d -> {
               pkgs.add(createPkg(d));

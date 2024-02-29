@@ -18,10 +18,7 @@
 
 package com.redhat.exhort.integration.providers;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -36,13 +33,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.redhat.exhort.api.PackageRef;
-import com.redhat.exhort.api.v4.DependencyReport;
-import com.redhat.exhort.api.v4.Issue;
-import com.redhat.exhort.api.v4.ProviderReport;
-import com.redhat.exhort.api.v4.SeverityUtils;
-import com.redhat.exhort.api.v4.Source;
-import com.redhat.exhort.api.v4.SourceSummary;
-import com.redhat.exhort.api.v4.TransitiveDependencyReport;
+import com.redhat.exhort.api.v4.*;
 import com.redhat.exhort.integration.Constants;
 import com.redhat.exhort.model.DependencyTree;
 import com.redhat.exhort.model.DirectDependency;
@@ -63,13 +54,16 @@ public class ProviderResponseHandlerTest {
   @ParameterizedTest
   @MethodSource("getSummaryValues")
   public void testSummary(
-      Map<String, List<Issue>> issuesData, DependencyTree tree, SourceSummary expected)
+      Map<String, List<Issue>> issuesData,
+      List<UnscannedDependency> unscanned,
+      DependencyTree tree,
+      SourceSummary expected)
       throws IOException {
 
     ProviderResponseHandler handler = new TestResponseHandler();
     ProviderReport response =
         handler.buildReport(
-            new ProviderResponse(issuesData, null, null),
+            new ProviderResponse(issuesData, null, unscanned),
             tree,
             null,
             EMPTY_TRUSTED_CONTENT_RESPONSE);
@@ -86,19 +80,27 @@ public class ProviderResponseHandlerTest {
     assertEquals(expected.getRecommendations(), summary.getRecommendations());
     assertEquals(expected.getRemediations(), summary.getRemediations());
     assertEquals(expected.getDependencies(), summary.getDependencies());
+    assertEquals(expected.getUnscanned(), summary.getUnscanned());
   }
 
   private static Stream<Arguments> getSummaryValues() {
     return Stream.of(
         Arguments.of(
             Map.of("pkg:npm/aa@1", List.of(buildIssue(1, 5f))),
+            List.of(
+                new UnscannedDependency().ref(new PackageRef("pkg:npm/aaa@1")).reason("aaa"),
+                new UnscannedDependency().ref(new PackageRef("pkg:npm/aaaaa@1")).reason("aaaaa")),
             buildTree(),
-            new SourceSummary().direct(1).total(1).medium(1).dependencies(1)),
+            new SourceSummary().direct(1).total(1).medium(1).dependencies(1).unscanned(2)),
         Arguments.of(
             Map.of(
                 "pkg:npm/aa@1", List.of(buildIssue(1, 3f)),
                 "pkg:npm/aaa@1", List.of(buildIssue(2, 4f)),
                 "pkg:npm/aba@1", List.of(buildIssue(3, 8f))),
+            List.of(
+                new UnscannedDependency().ref(new PackageRef("pkg:npm/aab@1")).reason("aab"),
+                new UnscannedDependency().ref(new PackageRef("pkg:npm/aabbb@1")).reason("aabbb"),
+                new UnscannedDependency().ref(new PackageRef("pkg:npm/aabbc@1")).reason("aabbc")),
             buildTree(),
             new SourceSummary()
                 .total(3)
@@ -107,13 +109,21 @@ public class ProviderResponseHandlerTest {
                 .high(1)
                 .medium(1)
                 .low(1)
-                .dependencies(3)),
+                .dependencies(3)
+                .unscanned(3)),
         Arguments.of(
             Map.of(
                 "pkg:npm/aa@1", List.of(buildIssue(1, 5f)),
                 "pkg:npm/aaa@1", List.of(buildIssue(2, 5f))),
+            null,
             buildTreeWithDuplicates(),
-            new SourceSummary().total(2).direct(1).transitive(1).medium(2).dependencies(2)));
+            new SourceSummary()
+                .total(2)
+                .direct(1)
+                .transitive(1)
+                .medium(2)
+                .dependencies(2)
+                .unscanned(0)));
   }
 
   @Test
@@ -413,6 +423,45 @@ public class ProviderResponseHandlerTest {
     assertEquals(1, dep.get().getIssues().size());
     assertEquals("CVE-008", dep.get().getIssues().get(0).getCves().get(0));
     assertNull(dep.get().getIssues().get(0).getRemediation());
+  }
+
+  @Test
+  void testUnscanned() throws IOException {
+    Map<String, List<Issue>> issues = Map.of("pkg:npm/aa@1", List.of(buildIssue(1, 5f)));
+    ProviderResponseHandler handler = new TestResponseHandler();
+    List<UnscannedDependency> unscanned =
+        List.of(
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aab@1")).reason("aab"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aabbb@1")).reason("aabbb"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aabbc@1")).reason("aabbc"));
+    DependencyTree tree = buildTree();
+    ProviderReport response =
+        handler.buildReport(
+            new ProviderResponse(issues, null, unscanned),
+            tree,
+            null,
+            EMPTY_TRUSTED_CONTENT_RESPONSE);
+    assertOkStatus(response);
+    assertEquals(1, response.getSources().size());
+    Source report = response.getSources().get(TEST_SOURCE);
+    assertEquals(unscanned, report.getUnscanned());
+  }
+
+  @Test
+  void testUnscannedResponse() {
+    var unscanned =
+        List.of(
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aa@1")).reason("aa"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aaa@1")).reason("aaa"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/aab@1")).reason("aab"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/ab@1")).reason("ab"),
+            new UnscannedDependency().ref(new PackageRef("pkg:npm/abb@1")).reason("abb"));
+    var handler = new TestResponseHandler();
+    var response = handler.unscannedResponse(unscanned);
+    assertNotNull(response);
+    assertTrue(response.issues().isEmpty());
+    assertNull(response.status());
+    assertEquals(unscanned, response.unscanned());
   }
 
   private void assertOkStatus(ProviderReport response) {

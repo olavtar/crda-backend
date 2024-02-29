@@ -36,7 +36,9 @@ public final class Constants {
 
   public static final String ACCEPT_HEADER = "Accept";
   public static final String ACCEPT_ENCODING_HEADER = "Accept-Encoding";
+  public static final String AUTHORIZATION_HEADER = "Authorization";
   public static final String SNYK_TOKEN_HEADER = "ex-snyk-token";
+  public static final String SNYK_USER_AGENT_HEADER_FORMAT = "redhat-snyk-%s-%s";
   public static final String OSS_INDEX_USER_HEADER = "ex-oss-index-user";
   public static final String OSS_INDEX_TOKEN_HEADER = "ex-oss-index-token";
   public static final String VERBOSE_MODE_HEADER = "verbose";
@@ -49,7 +51,6 @@ public final class Constants {
   public static final MediaType MULTIPART_MIXED_TYPE = new MediaType("multipart", "mixed");
   public static final String MULTIPART_MIXED = MULTIPART_MIXED_TYPE.toString();
   public static final String SPDX_MEDIATYPE_JSON = "application/vnd.spdx+json";
-  public static final String LIST_MEDIATYPE_PARAMETER = "list";
 
   public static final String SNYK_PROVIDER = "snyk";
   public static final String OSS_INDEX_PROVIDER = "oss-index";
@@ -69,17 +70,18 @@ public final class Constants {
   public static final String GEM_PURL_TYPE = "gem";
   public static final String COCOAPODS_PURL_TYPE = "cocoapods";
   public static final String RPM_PURL_TYPE = "rpm";
+  public static final String OCI_PURL_TYPE = "oci";
 
   public static final String PKG_MANAGER_PROPERTY = "pkgManager";
   public static final String REQUEST_CONTENT_PROPERTY = "requestContent";
   public static final String REPORT_PROPERTY = "report";
+  public static final String REPORTS_PROPERTY = "reports";
   public static final String PROVIDER_PRIVATE_DATA_PROPERTY = "providerPrivateData";
   public static final String RESPONSE_STATUS_PROPERTY = "responseStatus";
   public static final String DEPENDENCY_TREE_PROPERTY = "dependencyTree";
   public static final String API_VERSION_PROPERTY = "apiVersion";
   public static final String GZIP_RESPONSE_PROPERTY = "gzipResponse";
-  public static final String SBOM_LIST_PROPERTY = "sbomList";
-  public static final String ROOT_REF_PROPERTY = "rootRef";
+  public static final String SBOM_ID_PROPERTY = "sbomId";
   public static final String UNSCANNED_REFS_PROPERTY = "unscannedRefs";
 
   public static final String API_VERSION_V4 = "v4";
@@ -93,6 +95,8 @@ public final class Constants {
   public static final String TRUSTED_CONTENT_PATH = "/recommend";
   public static final String DEFAULT_ACCEPT_MEDIA_TYPE = MediaType.APPLICATION_JSON;
   public static final boolean DEFAULT_VERBOSE_MODE = false;
+
+  public static final String UNSCANNED_REASON_UNSUPPORTED_PACKAGE_TYPE = "unsupported-pkg-type";
 
   public static final List<String> PROVIDERS =
       Collections.unmodifiableList(

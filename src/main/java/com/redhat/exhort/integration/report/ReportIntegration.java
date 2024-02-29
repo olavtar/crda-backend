@@ -18,10 +18,11 @@
 
 package com.redhat.exhort.integration.report;
 
+import java.util.Map;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.endpoint.EndpointRouteBuilder;
 import org.apache.camel.component.jackson.JacksonDataFormat;
-import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
 import com.redhat.exhort.api.converter.AnalysisReportV3Converter;
 import com.redhat.exhort.api.v4.AnalysisReport;
@@ -63,6 +64,18 @@ public class ReportIntegration extends EndpointRouteBuilder {
                     .to(direct("jsonReport"))
             .end();
 
+        from(direct("batchReport"))
+            .routeId("batchReport")
+            .setProperty(Constants.REPORTS_PROPERTY, bodyAs(Map.class).method("values"))
+            .choice()
+                .when(exchangeProperty(Constants.REQUEST_CONTENT_PROPERTY).isEqualTo(MediaType.TEXT_HTML))
+                    .to(direct("htmlReport"))
+                .when(exchangeProperty(Constants.REQUEST_CONTENT_PROPERTY).isEqualTo(Constants.MULTIPART_MIXED))
+                    .to(direct("batchMultipartReport"))
+                .otherwise()
+                    .to(direct("batchJsonReport"))
+                .end();
+
         from(direct("htmlReport"))
             .routeId("htmlReport")
             .setHeader(Exchange.CONTENT_TYPE, constant(MediaType.TEXT_HTML))
@@ -77,26 +90,24 @@ public class ReportIntegration extends EndpointRouteBuilder {
             .marshal().mimeMultipart(false, false, true)
             .setHeader(Exchange.CONTENT_TYPE, constant(MediaType.TEXT_HTML));
 
-        from(direct("singleJsonReport"))
-            .routeId("singleJsonReport")
-            .setBody(exchangeProperty(Constants.REPORT_PROPERTY))
-            .bean(ReportTransformer.class, "filterVerboseResult")
-            .process(this::convertToApiVersion);
-
-        from(direct("multipleJsonReport"))
-            .routeId("multipleJsonReport")
-            .split(exchangeProperty(Constants.REPORT_PROPERTY), new GroupedBodyAggregationStrategy())
-                .parallelProcessing()
-                    .setProperty(Constants.REPORT_PROPERTY, body())
-                    .to(direct("singleJsonReport"));
+        from(direct("batchMultipartReport"))
+            .routeId("batchMultipartReport")
+            .to(direct("htmlReport"))
+            .bean(ReportTransformer.class, "attachHtmlReport")
+            .to(direct("batchJsonReport"))
+            .marshal().mimeMultipart(false, false, true)
+            .setHeader(Exchange.CONTENT_TYPE, constant(MediaType.TEXT_HTML));
 
         from(direct("jsonReport"))
             .routeId("jsonReport")
-            .choice()
-                .when(exchangeProperty(Constants.SBOM_LIST_PROPERTY).isEqualTo("true"))
-                    .to(direct("multipleJsonReport"))
-                .otherwise()
-                    .to(direct("singleJsonReport"))
+            .setBody(exchangeProperty(Constants.REPORT_PROPERTY))
+            .bean(ReportTransformer.class, "filterVerboseResult")
+            .process(this::convertToApiVersion)
+            .marshal(dataFormat);
+
+        from(direct("batchJsonReport"))
+            .routeId("batchJsonReport")
+            .bean(ReportTransformer.class, "batchFilterVerboseResult")
             .end()
             .marshal(dataFormat);
         //fmt:on

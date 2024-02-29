@@ -48,6 +48,12 @@ public class SnykIntegration extends EndpointRouteBuilder {
 
   @Inject MonitoringProcessor monitoringProcessor;
 
+  @ConfigProperty(name = "project.shortname")
+  String projectName;
+
+  @ConfigProperty(name = "project.version")
+  String projectVersion;
+
   @Override
   public void configure() {
 
@@ -115,7 +121,7 @@ public class SnykIntegration extends EndpointRouteBuilder {
       token = defaultToken;
       vulnerabilityProvider.addProviderPrivateData(exchange, Constants.SNYK_PROVIDER);
     }
-    message.setHeader("Authorization", "token " + token);
+    message.setHeader(Constants.AUTHORIZATION_HEADER, "token " + token);
   }
 
   private void processDepGraphRequest(Exchange exchange) {
@@ -128,7 +134,8 @@ public class SnykIntegration extends EndpointRouteBuilder {
 
   private void processTokenRequest(Exchange exchange) {
     var message = exchange.getMessage();
-    message.setHeader("Authorization", "token " + message.getHeader(Constants.SNYK_TOKEN_HEADER));
+    message.setHeader(
+        Constants.AUTHORIZATION_HEADER, "token " + message.getHeader(Constants.SNYK_TOKEN_HEADER));
     processRequestHeaders(message);
     message.setHeader(Exchange.HTTP_PATH, Constants.SNYK_TOKEN_API_PATH);
     message.setHeader(Exchange.HTTP_METHOD, HttpMethod.GET);
@@ -139,6 +146,10 @@ public class SnykIntegration extends EndpointRouteBuilder {
     message.removeHeader(Exchange.HTTP_QUERY);
     message.removeHeader(Exchange.HTTP_URI);
     message.removeHeader(Constants.SNYK_TOKEN_HEADER);
-    message.removeHeader("Accept-Encoding");
+    message.removeHeader(Constants.ACCEPT_ENCODING_HEADER);
+    message.removeHeader(Constants.PROVIDERS_PARAM);
+    message.setHeader(
+        Constants.USER_AGENT_HEADER,
+        String.format(Constants.SNYK_USER_AGENT_HEADER_FORMAT, projectName, projectVersion));
   }
 }

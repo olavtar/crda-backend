@@ -6,6 +6,7 @@ export interface AppData {
   ossIssueTemplate: string;
   snykIssueTemplate: string;
   nvdIssueTemplate: string;
+  cveIssueTemplate: string;
   snykSignup: string;
 }
 
@@ -21,9 +22,14 @@ export interface Report {
       sources?: {
         [key: string]: SourceReport;
       };
+      unscanned?: {
+          ref: string;
+      }[];
     };
   };
-  packageRef?: string;
+  root?: {
+    ref: string;
+  };
 }
 
 export interface ProviderStatus {

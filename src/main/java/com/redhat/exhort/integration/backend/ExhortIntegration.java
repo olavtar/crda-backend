@@ -22,10 +22,15 @@ import static com.redhat.exhort.integration.Constants.PROVIDERS_PARAM;
 import static com.redhat.exhort.integration.Constants.REQUEST_CONTENT_PROPERTY;
 import static com.redhat.exhort.integration.Constants.VERBOSE_MODE_HEADER;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
+import java.util.*;
+import java.util.stream.Collectors;
 
+import org.apache.camel.Body;
 import org.apache.camel.Exchange;
+import org.apache.camel.ExchangeProperty;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.AggregationStrategies;
 import org.apache.camel.builder.endpoint.EndpointRouteBuilder;
@@ -33,13 +38,19 @@ import org.apache.camel.component.micrometer.MicrometerConstants;
 import org.apache.camel.component.micrometer.routepolicy.MicrometerRoutePolicyFactory;
 import org.apache.camel.processor.aggregate.GroupedBodyAggregationStrategy;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.redhat.exhort.analytics.AnalyticsService;
+import com.redhat.exhort.api.PackageRef;
+import com.redhat.exhort.api.v4.AnalysisReport;
 import com.redhat.exhort.integration.Constants;
+import com.redhat.exhort.integration.backend.sbom.SbomParser;
 import com.redhat.exhort.integration.backend.sbom.SbomParserFactory;
 import com.redhat.exhort.integration.providers.ProviderAggregationStrategy;
 import com.redhat.exhort.integration.providers.VulnerabilityProvider;
 import com.redhat.exhort.integration.trustedcontent.TcResponseAggregation;
 import com.redhat.exhort.model.DependencyTree;
+import com.redhat.exhort.model.DirectDependency;
 import com.redhat.exhort.monitoring.MonitoringProcessor;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -67,6 +78,8 @@ public class ExhortIntegration extends EndpointRouteBuilder {
   @Inject MonitoringProcessor monitoringProcessor;
 
   @Inject TcResponseAggregation tcResponseAggregation;
+
+  @Inject ObjectMapper mapper;
 
   ExhortIntegration(MeterRegistry registry) {
     this.registry = registry;
@@ -111,6 +124,9 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .post("/v4/analysis")
         .routeId("restAnalysis")
         .to("direct:v4analysis")
+      .post("/v4/batch-analysis")
+        .routeId("restBatchAnalysis")
+        .to("direct:batchAnalysis")
       .get("/v3/token")
         .routeId("v3restTokenValidation")
         .to("direct:validateToken")
@@ -130,34 +146,22 @@ public class ExhortIntegration extends EndpointRouteBuilder {
 
     from(direct("analysis"))
       .routeId("dependencyAnalysis")
-      .setProperty(Constants.EXHORT_REQUEST_ID_HEADER, method(BackendUtils.class,"generateRequestId"))
-      .choice()
-        .when(header(Exchange.CONTENT_ENCODING).isEqualToIgnoreCase(GZIP_ENCODING)).unmarshal().gzipDeflater()
-        .setProperty(Constants.GZIP_RESPONSE_PROPERTY, constant(Boolean.TRUE))
-      .end()
-      .to(seda("analyticsIdentify"))
-      .setProperty(PROVIDERS_PARAM, method(vulnerabilityProvider, "getProvidersFromQueryParam"))
-      .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
-      .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER))
+      .to(direct("preProcessAnalysisRequest"))
       .process(this::processAnalysisRequest)
-      .choice()
-        .when(exchangeProperty(Constants.SBOM_LIST_PROPERTY).isEqualTo("true"))
-          .to(direct("analyzeSboms"))
-        .otherwise()
-          .to(direct("analyzeSbom"))
-      .end()
+      .to(direct("analyzeSbom"))
       .to(direct("report"))
-      .to(seda("analyticsTrackAnalysis"))
-      .setHeader(Constants.EXHORT_REQUEST_ID_HEADER, exchangeProperty(Constants.EXHORT_REQUEST_ID_HEADER))
-      .choice()
-        .when(exchangeProperty(Constants.GZIP_RESPONSE_PROPERTY).isNotNull()).marshal().gzipDeflater()
-        .setHeader(Exchange.CONTENT_ENCODING, constant("gzip"))
-      .end()
-      .process(this::cleanUpHeaders);
+      .to(direct("postProcessAnalysisRequest"));
+
+    from(direct("batchAnalysis"))
+      .routeId("batchDependencyAnalysis")
+      .to(direct("preProcessAnalysisRequest"))
+      .process(this::processBatchAnalysisRequest)
+      .to(direct("analyzeSboms"))
+      .to(direct("batchReport"))
+      .to(direct("postProcessAnalysisRequest"));
 
     from(direct("analyzeSbom"))
       .routeId("analyzeSbom")
-      .setProperty(Constants.ROOT_REF_PROPERTY, bodyAs(DependencyTree.class).method("rootRef"))
       .enrich(direct("getTrustedContent"), tcResponseAggregation)
       .to(direct("findVulnerabilities"))
       .transform().method(ProviderAggregationStrategy.class, "toReport");
@@ -166,8 +170,36 @@ public class ExhortIntegration extends EndpointRouteBuilder {
       .routeId("analyzeSboms")
       .split(body(), new GroupedBodyAggregationStrategy())
         .parallelProcessing()
-          .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, body())
-          .to(direct("analyzeSbom"));
+          .setProperty(Constants.SBOM_ID_PROPERTY, simple("${body.getKey()}"))
+          .setBody(simple("${body.getValue()}"))
+          .bean(this, "addSbomIdToDependencyTree")
+          .setProperty(Constants.DEPENDENCY_TREE_PROPERTY, bodyAs(DependencyTree.class))
+          .to(direct("analyzeSbom"))
+          .bean(this, "transformBatchAnalysisReport")
+      .end()
+      .bean(this, "transformBatchAnalysisReportList");
+
+    from(direct("preProcessAnalysisRequest"))
+      .routeId("preProcessAnalysisRequest")
+      .setProperty(Constants.EXHORT_REQUEST_ID_HEADER, method(BackendUtils.class,"generateRequestId"))
+      .choice()
+        .when(header(Exchange.CONTENT_ENCODING).isEqualToIgnoreCase(GZIP_ENCODING)).unmarshal().gzipDeflater()
+        .setProperty(Constants.GZIP_RESPONSE_PROPERTY, constant(Boolean.TRUE))
+      .end()
+      .to(seda("analyticsIdentify"))
+      .setProperty(PROVIDERS_PARAM, method(vulnerabilityProvider, "getProvidersFromQueryParam"))
+      .setProperty(REQUEST_CONTENT_PROPERTY, method(BackendUtils.class, "getResponseMediaType"))
+      .setProperty(VERBOSE_MODE_HEADER, header(VERBOSE_MODE_HEADER));
+
+    from(direct("postProcessAnalysisRequest"))
+      .routeId("postProcessAnalysisRequest")
+      .to(seda("analyticsTrackAnalysis"))
+      .setHeader(Constants.EXHORT_REQUEST_ID_HEADER, exchangeProperty(Constants.EXHORT_REQUEST_ID_HEADER))
+      .choice()
+        .when(exchangeProperty(Constants.GZIP_RESPONSE_PROPERTY).isNotNull()).marshal().gzipDeflater()
+        .setHeader(Exchange.CONTENT_ENCODING, constant("gzip"))
+      .end()
+      .process(this::cleanUpHeaders);
 
     from(direct("findVulnerabilities"))
       .routeId("findVulnerabilities")
@@ -225,9 +257,45 @@ public class ExhortIntegration extends EndpointRouteBuilder {
   }
 
   private void processAnalysisRequest(Exchange exchange) {
+    removeRequestHeader(exchange);
+    var parser = getSbomParser(exchange);
+    var tree = parser.parse(exchange.getIn().getBody(InputStream.class));
+    exchange.setProperty(Constants.DEPENDENCY_TREE_PROPERTY, tree);
+    exchange.getIn().setBody(tree);
+  }
+
+  private void processBatchAnalysisRequest(Exchange exchange) {
+    removeRequestHeader(exchange);
+    var parser = getSbomParser(exchange);
+    try {
+      Map<?, ?> sboms = mapper.readValue(exchange.getIn().getBody(InputStream.class), Map.class);
+      Map<String, DependencyTree> trees =
+          sboms.entrySet().stream()
+              .collect(
+                  Collectors.toMap(
+                      e -> e.getKey().toString(),
+                      e -> {
+                        try {
+                          return parser.parse(
+                              new ByteArrayInputStream(mapper.writeValueAsBytes(e.getValue())));
+                        } catch (JsonProcessingException ex) {
+                          throw new RuntimeException(ex);
+                        }
+                      }));
+      exchange.getIn().setBody(trees);
+    } catch (IOException | RuntimeException ex) {
+      throw new ClientErrorException(
+          "Unable to parse received request: " + ex.getMessage(), Response.Status.BAD_REQUEST);
+    }
+  }
+
+  private void removeRequestHeader(Exchange exchange) {
     exchange.getIn().removeHeader(Constants.ACCEPT_HEADER);
     exchange.getIn().removeHeader(Constants.ACCEPT_ENCODING_HEADER);
     exchange.getIn().removeHeader(Exchange.CONTENT_ENCODING);
+  }
+
+  private SbomParser getSbomParser(Exchange exchange) {
     ContentType ct;
     try {
       ct = new ContentType(exchange.getIn().getHeader(Exchange.CONTENT_TYPE, String.class));
@@ -236,15 +304,7 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     }
     var parser = SbomParserFactory.newInstance(ct.getBaseType());
     exchange.setProperty(Constants.SBOM_TYPE_PARAM, ct.getBaseType());
-    if (Boolean.parseBoolean(ct.getParameter(Constants.LIST_MEDIATYPE_PARAMETER))) {
-      var trees = parser.parseSboms(exchange.getIn().getBody(InputStream.class));
-      exchange.setProperty(Constants.SBOM_LIST_PROPERTY, "true");
-      exchange.getIn().setBody(trees);
-    } else {
-      var tree = parser.parse(exchange.getIn().getBody(InputStream.class));
-      exchange.setProperty(Constants.DEPENDENCY_TREE_PROPERTY, tree);
-      exchange.getIn().setBody(tree);
-    }
+    return parser;
   }
 
   private void cleanUpHeaders(Exchange exchange) {
@@ -252,7 +312,31 @@ public class ExhortIntegration extends EndpointRouteBuilder {
     msg.removeHeader(VERBOSE_MODE_HEADER);
     msg.removeHeaders("ex-.*-user");
     msg.removeHeaders("ex-.*-token");
-    msg.removeHeader("Authorization");
+    msg.removeHeader(Constants.AUTHORIZATION_HEADER);
     msg.removeHeaders("rhda-.*");
+  }
+
+  public DependencyTree addSbomIdToDependencyTree(
+      @Body DependencyTree tree, @ExchangeProperty(Constants.SBOM_ID_PROPERTY) String sbomId) {
+    Map<PackageRef, DirectDependency> dependencies = new HashMap<>();
+    if (tree.dependencies() != null) {
+      dependencies.putAll(tree.dependencies());
+    }
+    PackageRef sbomRef = new PackageRef(sbomId);
+    if (!dependencies.containsKey(sbomRef)) {
+      dependencies.put(sbomRef, new DirectDependency(sbomRef, Collections.emptySet()));
+    }
+    return DependencyTree.builder().dependencies(dependencies).build();
+  }
+
+  public Map.Entry<String, AnalysisReport> transformBatchAnalysisReport(
+      @Body AnalysisReport report, @ExchangeProperty(Constants.SBOM_ID_PROPERTY) String sbomId) {
+    return new AbstractMap.SimpleEntry<>(sbomId, report);
+  }
+
+  @SuppressWarnings("unchecked")
+  public Map<String, AnalysisReport> transformBatchAnalysisReportList(
+      @Body List<Map.Entry<String, AnalysisReport>> reports) {
+    return reports.stream().collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 }

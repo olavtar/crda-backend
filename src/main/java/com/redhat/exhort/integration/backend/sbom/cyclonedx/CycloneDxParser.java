@@ -20,7 +20,13 @@ package com.redhat.exhort.integration.backend.sbom.cyclonedx;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -47,53 +53,30 @@ public class CycloneDxParser extends SbomParser {
   @Override
   protected DependencyTree buildTree(InputStream input) {
     try {
+      var treeBuilder = DependencyTree.builder();
       var bom = mapper.readValue(input, Bom.class);
-      return buildTree(bom);
-    } catch (IOException | IllegalStateException e) {
-      LOGGER.error("Unable to parse the CycloneDX SBOM file", e);
-      throw new ClientErrorException(
-          "Unable to parse received CycloneDX SBOM file: " + e.getMessage(),
-          Response.Status.BAD_REQUEST);
-    }
-  }
-
-  private DependencyTree buildTree(Bom bom) {
-    var treeBuilder = DependencyTree.builder();
-    Map<String, PackageRef> componentPurls = new HashMap<>();
-    if (bom.getComponents() != null) {
-      componentPurls.putAll(
-          bom.getComponents().stream()
-              .filter(c -> c.getBomRef() != null)
-              .collect(Collectors.toMap(Component::getBomRef, c -> new PackageRef(c.getPurl()))));
-    }
-
-    if (bom.getMetadata() == null) {
-      throw new ClientErrorException(
-          "Unable to parse CycloneDX SBOM. Missing metadata.", Response.Status.BAD_REQUEST);
-    }
-    var rootComponent = Optional.ofNullable(bom.getMetadata().getComponent());
-    PackageRef rootRef = null;
-    if (rootComponent.isPresent()) {
-      if (rootComponent.get().getPurl() != null) {
-        rootRef = new PackageRef(rootComponent.get().getPurl());
-      } else if (componentPurls.containsKey(rootComponent.get().getBomRef())) {
-        rootRef = componentPurls.get(rootComponent.get().getBomRef());
+      Map<String, PackageRef> componentPurls = new HashMap<>();
+      if (bom.getComponents() != null) {
+        componentPurls.putAll(
+            bom.getComponents().stream()
+                .filter(c -> c.getBomRef() != null)
+                .collect(Collectors.toMap(Component::getBomRef, c -> new PackageRef(c.getPurl()))));
       }
-    }
-    return treeBuilder
-        .dependencies(buildDependencies(bom, componentPurls, rootRef))
-        .rootRef(rootRef)
-        .build();
-  }
 
-  @Override
-  protected Collection<DependencyTree> buildTrees(InputStream input) {
-    try {
-      List<?> list = mapper.readValue(input, List.class);
-      return list.stream()
-          .map(o -> mapper.convertValue(o, Bom.class))
-          .map(this::buildTree)
-          .collect(Collectors.toList());
+      Optional<Component> rootComponent = Optional.empty();
+      if (bom.getMetadata() != null) {
+        rootComponent = Optional.ofNullable(bom.getMetadata().getComponent());
+      }
+
+      PackageRef rootRef = null;
+      if (rootComponent.isPresent()) {
+        if (rootComponent.get().getPurl() != null) {
+          rootRef = new PackageRef(rootComponent.get().getPurl());
+        } else if (componentPurls.containsKey(rootComponent.get().getBomRef())) {
+          rootRef = componentPurls.get(rootComponent.get().getBomRef());
+        }
+      }
+      return treeBuilder.dependencies(buildDependencies(bom, componentPurls, rootRef)).build();
     } catch (IOException | IllegalStateException e) {
       LOGGER.error("Unable to parse the CycloneDX SBOM file", e);
       throw new ClientErrorException(
