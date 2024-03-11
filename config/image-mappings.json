@@ -1,6 +1,6 @@
 [
   {
-    "purl": "pkg:oci/ubi@sha256:f5983f7c7878cc9b26a3962be7756e3c810e9831b0b9f9613e6f6b445f884e74?arch=amd64&repository_url=registry.access.redhat.com/ubi9/ubi&tag=9.3-1552",
+    "purl": "pkg:oci/ubi@sha256:f5983f7c7878cc9b26a3962be7756e3c810e9831b0b9f9613e6f6b445f884e74?repository_url=registry.access.redhat.com/ubi9/ubi&tag=9.3-1552&arch=amd64",
     "catalogUrl": "https://catalog.redhat.com/software/containers/ubi9/ubi/615bcf606feffc5384e8452e?architecture=amd64&image=65a82982a10f3e68777870b5"
   },
   {

@@ -174,8 +174,9 @@ export const imageRemediationLink = (purl: string, report: Report, imageMapping:
     });
 
       if (matchingDependency && matchingDependency.recommendation ) {
-        const transformedUrl = decodeURIComponent(matchingDependency.recommendation);
-        const catalogUrl = getCatalogUrlByPurl(transformedUrl, imageMapping);
+        const transformedRecommUrl = decodeURIComponent(matchingDependency.recommendation);
+        const catalogUrl = getCatalogUrlByPurl(transformedRecommUrl, imageMapping);
+
         if (catalogUrl !== undefined) {
           return catalogUrl;
         }
